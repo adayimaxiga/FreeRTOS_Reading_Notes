@@ -1,0 +1,68 @@
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/../lib/gcc/arm-none-eabi/7.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): In function `exit':
+exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+collect2: error: ld returned 1 exit status
+
+
+Determining if the C compiler works failed with the following output:
+Change Dir: /home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_66e72/fast"
+/usr/bin/make -f CMakeFiles/cmTC_66e72.dir/build.make CMakeFiles/cmTC_66e72.dir/build
+make[1]: 进入目录“/home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_66e72.dir/testCCompiler.c.o
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc    -o CMakeFiles/cmTC_66e72.dir/testCCompiler.c.o   -c /home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_66e72
+/home/droid/clion-2018.2.2/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_66e72.dir/link.txt --verbose=1
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc      CMakeFiles/cmTC_66e72.dir/testCCompiler.c.o  -o cmTC_66e72 
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/../lib/gcc/arm-none-eabi/7.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): In function `exit':
+exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_66e72.dir/build.make:86: recipe for target 'cmTC_66e72' failed
+make[1]: *** [cmTC_66e72] Error 1
+make[1]: 离开目录“/home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp”
+Makefile:121: recipe for target 'cmTC_66e72/fast' failed
+make: *** [cmTC_66e72/fast] Error 2
+
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/../lib/gcc/arm-none-eabi/7.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): In function `exit':
+exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+collect2: error: ld returned 1 exit status
+
+
+Determining if the C compiler works failed with the following output:
+Change Dir: /home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_5f76b/fast"
+make[1]: 进入目录“/home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp”
+/usr/bin/make -f CMakeFiles/cmTC_5f76b.dir/build.make CMakeFiles/cmTC_5f76b.dir/build
+make[2]: 进入目录“/home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp”
+Building C object CMakeFiles/cmTC_5f76b.dir/testCCompiler.c.o
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc    -o CMakeFiles/cmTC_5f76b.dir/testCCompiler.c.o   -c /home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_5f76b
+/home/droid/clion-2018.2.2/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5f76b.dir/link.txt --verbose=1
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc      CMakeFiles/cmTC_5f76b.dir/testCCompiler.c.o  -o cmTC_5f76b 
+/home/droid/gcc-arm-none-eabi-7-2018-q2-update/bin/../lib/gcc/arm-none-eabi/7.3.1/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): In function `exit':
+exit.c:(.text.exit+0x2c): undefined reference to `_exit'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_5f76b.dir/build.make:86: recipe for target 'cmTC_5f76b' failed
+make[2]: *** [cmTC_5f76b] Error 1
+make[2]: 离开目录“/home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp”
+Makefile:121: recipe for target 'cmTC_5f76b/fast' failed
+make[1]: *** [cmTC_5f76b/fast] Error 2
+make[1]: 离开目录“/home/droid/freeRTOS_reader/freertos_read/cmake-build-debug/CMakeFiles/CMakeTmp”
+
+
