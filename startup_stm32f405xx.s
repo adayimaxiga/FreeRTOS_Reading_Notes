@@ -41,17 +41,17 @@
   ******************************************************************************
   */
     
-  .syntax unified
-  .cpu cortex-m4
+  .syntax unified     //提示下面是ARM+THUMB
+  .cpu cortex-m4      
   .fpu softvfp
   .thumb
-
+//定义全局变量，可以被其他文件调用
 .global  g_pfnVectors
 .global  Default_Handler
-
+//定义几个段地址
 /* start address for the initialization values of the .data section. 
 defined in linker script */
-.word  _sidata
+.word  _sidata      
 /* start address for the .data section. defined in linker script */  
 .word  _sdata
 /* end address for the .data section. defined in linker script */
@@ -78,39 +78,39 @@ Reset_Handler:
   ldr   sp, =_estack     /* set stack pointer */
 
 /* Copy the data segment initializers from flash to SRAM */  
-  movs  r1, #0
-  b  LoopCopyDataInit
+  movs  r1, #0          //将立即数0赋值给r1寄存器
+  b  LoopCopyDataInit   //程序转移到LoopCopyDataInit处
 
-CopyDataInit:
-  ldr  r3, =_sidata
-  ldr  r3, [r3, r1]
-  str  r3, [r0, r1]
-  adds  r1, r1, #4
+CopyDataInit:           //从FLASH中拷贝地址在sdata和edata之间的代码到SRAM中
+  ldr  r3, =_sidata     //从存储器中将_sidata加载到寄存器r3中 
+  ldr  r3, [r3, r1]     //从地址r3+r1处读取一个字（32bit）到r3中  r3为基地址，r1为偏移地址
+  str  r3, [r0, r1]     //把寄存器r3的值存储到存储器中地址为r0+r1地址处
+  adds  r1, r1, #4      //r1+4
     
-LoopCopyDataInit:
-  ldr  r0, =_sdata
-  ldr  r3, =_edata
-  adds  r2, r0, r1
-  cmp  r2, r3
-  bcc  CopyDataInit
-  ldr  r2, =_sbss
-  b  LoopFillZerobss
+LoopCopyDataInit:       //循环拷贝数据
+  ldr  r0, =_sdata      //DATA起始地址
+  ldr  r3, =_edata      //r3给出尾地址
+  adds  r2, r0, r1      //r2为物理地址，r1为偏移地址，r0为基地址
+  cmp  r2, r3           //地址还在data段
+  bcc  CopyDataInit     //还能拷贝，就跳转CopyDataInit
+  ldr  r2, =_sbss       //从存储器中将_sbss加载到寄存器r2中
+  b  LoopFillZerobss    //循环置位bss段
 /* Zero fill the bss segment. */  
-FillZerobss:
+FillZerobss:            
   movs  r3, #0
   str  r3, [r2], #4
     
-LoopFillZerobss:
-  ldr  r3, = _ebss
-  cmp  r2, r3
+LoopFillZerobss:          
+  ldr  r3, = _ebss      //从存储器中将_ebss加载到寄存器r3中
+  bcc  r2, r3           //一样的方法，比较
   bcc  FillZerobss
 
 /* Call the clock system intitialization function.*/
-  bl  SystemInit   
+  bl  SystemInit        //在system_stm32f4xx
 /* Call static constructors */
     bl __libc_init_array
 /* Call the application's entry point.*/
-  bl  main
+  bl  main                       //到这里跳转到
   bx  lr    
 .size  Reset_Handler, .-Reset_Handler
 
