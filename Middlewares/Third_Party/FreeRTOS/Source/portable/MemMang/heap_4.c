@@ -137,7 +137,7 @@ block must by correctly byte aligned. */
 static const size_t xHeapStructSize	= ( sizeof( BlockLink_t ) + ( ( size_t ) ( portBYTE_ALIGNMENT - 1 ) ) ) & ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
 
 /* Create a couple of list links to mark the start and end of the list. */
-static BlockLink_t xStart, *pxEnd = NULL;
+static BlockLink_t xStart, *pxEnd = NULL;			//这里的pxEnd是个指针，而heap_2模型中它不是指针。
 
 /* Keeps track of the number of free bytes remaining, but says nothing about
 fragmentation. */
@@ -174,16 +174,23 @@ void *pvReturn = NULL;
 		set.  The top bit of the block size member of the BlockLink_t structure
 		is used to determine who owns the block - the application or the
 		kernel, so it must be free. */
+		/*	
+			最高位是有其他用处？
+			最高位是用来确定这一块内存是kernel拥有还是application拥有
+		
+		*/
 		if( ( xWantedSize & xBlockAllocatedBit ) == 0 )
 		{
 			/* The wanted size is increased so it can contain a BlockLink_t
 			structure in addition to the requested amount of bytes. */
 			if( xWantedSize > 0 )
 			{
+				//与heap2一样的操作。
 				xWantedSize += xHeapStructSize;
 
 				/* Ensure that blocks are always aligned to the required number
 				of bytes. */
+				//这里在做地址对齐的操作。
 				if( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) != 0x00 )
 				{
 					/* Byte alignment required. */
@@ -199,33 +206,43 @@ void *pvReturn = NULL;
 			{
 				mtCOVERAGE_TEST_MARKER();
 			}
-
+			//判断需求的空间大小是否满足要求
 			if( ( xWantedSize > 0 ) && ( xWantedSize <= xFreeBytesRemaining ) )
 			{
 				/* Traverse the list from the start	(lowest address) block until
 				one	of adequate size is found. */
+				/*
+					这里开始按地址顺序遍历block，直到找到一个满足条件的block
+				*/
 				pxPreviousBlock = &xStart;
 				pxBlock = xStart.pxNextFreeBlock;
 				while( ( pxBlock->xBlockSize < xWantedSize ) && ( pxBlock->pxNextFreeBlock != NULL ) )
 				{
 					pxPreviousBlock = pxBlock;
 					pxBlock = pxBlock->pxNextFreeBlock;
-				}
-
+				}	
+				/*
+					到这里时，pxBlock是找到了一个满足条件的空间，要不然就是没找到，pxBlock == pxEnd
+				*/
 				/* If the end marker was reached then a block of adequate size
 				was	not found. */
 				if( pxBlock != pxEnd )
 				{
 					/* Return the memory space pointed to - jumping over the
 					BlockLink_t structure at its start. */
+					//这里留出了bloct struct空间后返回后面一个地址。
 					pvReturn = ( void * ) ( ( ( uint8_t * ) pxPreviousBlock->pxNextFreeBlock ) + xHeapStructSize );
 
 					/* This block is being returned for use so must be taken out
 					of the list of free blocks. */
+					//把这一块空间拿出heap
 					pxPreviousBlock->pxNextFreeBlock = pxBlock->pxNextFreeBlock;
 
 					/* If the block is larger than required it can be split into
 					two. */
+					/*
+						与heap2操作一致，这时候如果这个block大一些，就会被分成两个Block，一个是malloc需要的block，一个是空闲block。
+					*/
 					if( ( pxBlock->xBlockSize - xWantedSize ) > heapMINIMUM_BLOCK_SIZE )
 					{
 						/* This block is to be split into two.  Create a new
@@ -241,6 +258,9 @@ void *pvReturn = NULL;
 						pxBlock->xBlockSize = xWantedSize;
 
 						/* Insert the new block into the list of free blocks. */
+						/* 
+							把新block放进空闲block链表里面
+						*/
 						prvInsertBlockIntoFreeList( pxNewBlockLink );
 					}
 					else
@@ -252,7 +272,7 @@ void *pvReturn = NULL;
 
 					if( xFreeBytesRemaining < xMinimumEverFreeBytesRemaining )
 					{
-						xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
+						xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;	//这个变量代表啥？
 					}
 					else
 					{
@@ -261,7 +281,7 @@ void *pvReturn = NULL;
 
 					/* The block is being returned - it is allocated and owned
 					by the application and has no "next" block. */
-					pxBlock->xBlockSize |= xBlockAllocatedBit;
+					pxBlock->xBlockSize |= xBlockAllocatedBit;	
 					pxBlock->pxNextFreeBlock = NULL;
 				}
 				else
@@ -301,7 +321,10 @@ void *pvReturn = NULL;
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
-
+/*
+	释放空间
+	先判断
+*/
 void vPortFree( void *pv )
 {
 uint8_t *puc = ( uint8_t * ) pv;
@@ -311,7 +334,7 @@ BlockLink_t *pxLink;
 	{
 		/* The memory being freed will have an BlockLink_t structure immediately
 		before it. */
-		puc -= xHeapStructSize;
+		puc -= xHeapStructSize;		//减去一个xHeapStructSize
 
 		/* This casting is to keep the compiler from issuing warnings. */
 		pxLink = ( void * ) puc;
@@ -319,14 +342,14 @@ BlockLink_t *pxLink;
 		/* Check the block is actually allocated. */
 		configASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 );
 		configASSERT( pxLink->pxNextFreeBlock == NULL );
-
+		//这里分配的每个Block最高位都是1
 		if( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 )
 		{
-			if( pxLink->pxNextFreeBlock == NULL )
+			if( pxLink->pxNextFreeBlock == NULL )		//这里分配出来必须是个空的。
 			{
 				/* The block is being returned to the heap - it is no longer
 				allocated. */
-				pxLink->xBlockSize &= ~xBlockAllocatedBit;
+				pxLink->xBlockSize &= ~xBlockAllocatedBit;	//获得真实的block大小
 
 				vTaskSuspendAll();
 				{
@@ -377,7 +400,9 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
 	uxAddress = ( size_t ) ucHeap;			//内存堆初始地址
-
+	/*
+		这里同样是做了一个内存地址对齐。这样uxAddress 的地址一定是后几位都是0
+	*/
 	if( ( uxAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
 	{
 		uxAddress += ( portBYTE_ALIGNMENT - 1 );
@@ -389,11 +414,13 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* xStart is used to hold a pointer to the first item in the list of free
 	blocks.  The void cast is used to prevent compiler warnings. */
+	/*Start指向初始地址*/
 	xStart.pxNextFreeBlock = ( void * ) pucAlignedHeap;
 	xStart.xBlockSize = ( size_t ) 0;
 
 	/* pxEnd is used to mark the end of the list of free blocks and is inserted
 	at the end of the heap space. */
+	//这里把pxEnd放在了heap尾部，注意在heap_2中pxEnd是放在全局区的。
 	uxAddress = ( ( size_t ) pucAlignedHeap ) + xTotalHeapSize;
 	uxAddress -= xHeapStructSize;
 	uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
@@ -403,6 +430,7 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* To start with there is a single free block that is sized to take up the
 	entire heap space, minus the space taken by pxEnd. */
+	//这里又在heap开始位置放下第一个Block，这个跟heap2相同。
 	pxFirstFreeBlock = ( void * ) pucAlignedHeap;
 	pxFirstFreeBlock->xBlockSize = uxAddress - ( size_t ) pxFirstFreeBlock;
 	pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
@@ -412,10 +440,15 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 	xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
 
 	/* Work out the position of the top bit in a size_t variable. */
+	/*取最高地址位*/
 	xBlockAllocatedBit = ( ( size_t ) 1 ) << ( ( sizeof( size_t ) * heapBITS_PER_BYTE ) - 1 );
 }
 /*-----------------------------------------------------------*/
-
+/*
+	功能类似heap2，回收空闲内存块
+	这里不是按照块大小排序的，是按照地址顺序。
+	然后如果插入的内存块首地址与上一个内存块相连，则合并俩内存块成一个连续内存块。
+*/
 static void prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert )
 {
 BlockLink_t *pxIterator;
@@ -430,6 +463,9 @@ uint8_t *puc;
 
 	/* Do the block being inserted, and the block it is being inserted after
 	make a contiguous block of memory? */
+	/*
+		这里计算是否与前一块连续并与前一个块合成内存块	
+	*/
 	puc = ( uint8_t * ) pxIterator;
 	if( ( puc + pxIterator->xBlockSize ) == ( uint8_t * ) pxBlockToInsert )
 	{
@@ -443,6 +479,9 @@ uint8_t *puc;
 
 	/* Do the block being inserted, and the block it is being inserted before
 	make a contiguous block of memory? */
+	/*
+		这里计算是否与后一块连续成一个内存块，并进行合成操作。
+	*/
 	puc = ( uint8_t * ) pxBlockToInsert;
 	if( ( puc + pxBlockToInsert->xBlockSize ) == ( uint8_t * ) pxIterator->pxNextFreeBlock )
 	{
@@ -466,6 +505,9 @@ uint8_t *puc;
 	before and the block after, then it's pxNextFreeBlock pointer will have
 	already been set, and should not be set here as that would make it point
 	to itself. */
+	/*
+		到这里说明pxBlockToInsert是中间一个两侧都不相邻的内存块。那就把它加进空闲堆链表中间。
+	*/
 	if( pxIterator != pxBlockToInsert )
 	{
 		pxIterator->pxNextFreeBlock = pxBlockToInsert;

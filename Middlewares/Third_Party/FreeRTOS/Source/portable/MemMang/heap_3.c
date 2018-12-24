@@ -96,7 +96,9 @@ task.h is included from an application file. */
 #endif
 
 /*-----------------------------------------------------------*/
-
+/*
+    这里面啥都没干，就是任务挂起，malloc，任务恢复
+*/
 void *pvPortMalloc( size_t xWantedSize )
 {
 void *pvReturn;
@@ -121,6 +123,9 @@ void *pvReturn;
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
+/*
+    这里面啥都没干，就是任务挂起，free，任务恢复
+*/
 
 void vPortFree( void *pv )
 {
