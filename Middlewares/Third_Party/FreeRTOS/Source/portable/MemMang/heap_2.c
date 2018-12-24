@@ -117,17 +117,19 @@ typedef struct A_BLOCK_LINK
 	struct A_BLOCK_LINK *pxNextFreeBlock;	/*<< The next free block in the list. */
 	size_t xBlockSize;						/*<< The size of the free block. */
 } BlockLink_t;
-
-
+//内存块链表管理内存
+/*
+	我理解是取一个比heapSTRUCT_SIZE大的最小aligned地址
+*/
 static const uint16_t heapSTRUCT_SIZE	= ( ( sizeof ( BlockLink_t ) + ( portBYTE_ALIGNMENT - 1 ) ) & ~portBYTE_ALIGNMENT_MASK );
-#define heapMINIMUM_BLOCK_SIZE	( ( size_t ) ( heapSTRUCT_SIZE * 2 ) )
+#define heapMINIMUM_BLOCK_SIZE	( ( size_t ) ( heapSTRUCT_SIZE * 2 ) )			//俩？start和end？
 
 /* Create a couple of list links to mark the start and end of the list. */
 static BlockLink_t xStart, xEnd;
 
 /* Keeps track of the number of free bytes remaining, but says nothing about
 fragmentation. */
-static size_t xFreeBytesRemaining = configADJUSTED_HEAP_SIZE;
+static size_t xFreeBytesRemaining = configADJUSTED_HEAP_SIZE;		//计算剩余空间，和1一个道理
 
 /* STATIC FUNCTIONS ARE DEFINED AS MACROS TO MINIMIZE THE FUNCTION CALL DEPTH. */
 
@@ -136,6 +138,13 @@ static size_t xFreeBytesRemaining = configADJUSTED_HEAP_SIZE;
  * the block.  Small blocks at the start of the list and large blocks at the end
  * of the list.
  */
+//这里就是要把一个空闲块加入到空闲块链表里面。
+/*
+	方法大概是：
+	从最开始遍历寻找一个大小合适的位置，
+	把它放进去
+	因此空闲块链表是一个从小到大排列的链表
+*/
 #define prvInsertBlockIntoFreeList( pxBlockToInsert )								\
 {																					\
 BlockLink_t *pxIterator;															\
@@ -177,40 +186,46 @@ void *pvReturn = NULL;
 		structure in addition to the requested amount of bytes. */
 		if( xWantedSize > 0 )
 		{
-			xWantedSize += heapSTRUCT_SIZE;
+			xWantedSize += heapSTRUCT_SIZE;	//自动加个struct大小
 
 			/* Ensure that blocks are always aligned to the required number of bytes. */
 			if( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) != 0 )
 			{
 				/* Byte alignment required. */
-				xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );
+				xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );//计算对齐后需要的大小
 			}
 		}
 
-		if( ( xWantedSize > 0 ) && ( xWantedSize < configADJUSTED_HEAP_SIZE ) )
+		if( ( xWantedSize > 0 ) && ( xWantedSize < configADJUSTED_HEAP_SIZE ) )		//判断xWantedSize合法性
 		{
 			/* Blocks are stored in byte order - traverse the list from the start
 			(smallest) block until one of adequate size is found. */
 			pxPreviousBlock = &xStart;
 			pxBlock = xStart.pxNextFreeBlock;
+			/*
+				如果这个区域大小不够xWantedSize则继续寻找下一个block，一直找到需要的Block
+			*/
 			while( ( pxBlock->xBlockSize < xWantedSize ) && ( pxBlock->pxNextFreeBlock != NULL ) )
 			{
 				pxPreviousBlock = pxBlock;
 				pxBlock = pxBlock->pxNextFreeBlock;
 			}
-
+			//如果这不是最后一个Block
 			/* If we found the end marker then a block of adequate size was not found. */
 			if( pxBlock != &xEnd )
 			{
 				/* Return the memory space - jumping over the BlockLink_t structure
 				at its start. */
+				//单独分出一个块，这个块给用户，注意要把头去掉，给后面的位置。我理解留下头方便回收这块内存。
 				pvReturn = ( void * ) ( ( ( uint8_t * ) pxPreviousBlock->pxNextFreeBlock ) + heapSTRUCT_SIZE );
 
 				/* This block is being returned for use so must be taken out of the
 				list of free blocks. */
+				//把这一块拉出来，拿出去。
 				pxPreviousBlock->pxNextFreeBlock = pxBlock->pxNextFreeBlock;
 
 				/* If the block is larger than required it can be split into two. */
+				//如果这块足够大，可以再分割一次，然后把新生成的空闲块再插入进去。
 				if( ( pxBlock->xBlockSize - xWantedSize ) > heapMINIMUM_BLOCK_SIZE )
 				{
 					/* This block is to be split into two.  Create a new block
@@ -226,7 +241,7 @@ void *pvReturn = NULL;
 					/* Insert the new block into the list of free blocks. */
 					prvInsertBlockIntoFreeList( ( pxNewBlockLink ) );
 				}
-
+				//剩余空间大小减去。
 				xFreeBytesRemaining -= pxBlock->xBlockSize;
 			}
 		}
@@ -248,7 +263,9 @@ void *pvReturn = NULL;
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
-
+/*
+	这个释放就很简单了，找到前面的链表，然后直接加入到空闲链表去。
+*/
 void vPortFree( void *pv )
 {
 uint8_t *puc = ( uint8_t * ) pv;
@@ -287,7 +304,14 @@ void vPortInitialiseBlocks( void )
 	/* This just exists to keep the linker quiet. */
 }
 /*-----------------------------------------------------------*/
-
+/*
+内存堆初始化，只调用一次
+	首先将地址对齐，xStart给出起始地址，xEnd给最终地址。
+	刚开始就只有一个Block，大小是整个heap
+	这里的pxFirstFreeBlock是个局部变量？？？？
+	那声明了又有啥用？？？
+	不对，这里是在初始地址放下了第一个Block
+*/
 static void prvHeapInit( void )
 {
 BlockLink_t *pxFirstFreeBlock;
