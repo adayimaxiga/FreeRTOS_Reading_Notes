@@ -153,6 +153,7 @@ static void prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert );
 
 /* The size of the structure placed at the beginning of each allocated memory
 block must by correctly byte aligned. */
+//与heap_2 heap_4一致，对struct做字节对齐。
 static const size_t xHeapStructSize	= ( sizeof( BlockLink_t ) + ( ( size_t ) ( portBYTE_ALIGNMENT - 1 ) ) ) & ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
 
 /* Create a couple of list links to mark the start and end of the list. */
@@ -170,7 +171,9 @@ space. */
 static size_t xBlockAllocatedBit = 0;
 
 /*-----------------------------------------------------------*/
-
+/* 
+	申请内存
+*/
 void *pvPortMalloc( size_t xWantedSize )
 {
 BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
@@ -190,6 +193,8 @@ void *pvReturn = NULL;
 		{
 			/* The wanted size is increased so it can contain a BlockLink_t
 			structure in addition to the requested amount of bytes. */
+			
+			//一样的操作，对齐边界
 			if( xWantedSize > 0 )
 			{
 				xWantedSize += xHeapStructSize;
@@ -217,6 +222,9 @@ void *pvReturn = NULL;
 				one	of adequate size is found. */
 				pxPreviousBlock = &xStart;
 				pxBlock = xStart.pxNextFreeBlock;
+				/*
+					这里遍历得到一个满足大小的block
+				*/
 				while( ( pxBlock->xBlockSize < xWantedSize ) && ( pxBlock->pxNextFreeBlock != NULL ) )
 				{
 					pxPreviousBlock = pxBlock;
@@ -229,14 +237,17 @@ void *pvReturn = NULL;
 				{
 					/* Return the memory space pointed to - jumping over the
 					BlockLink_t structure at its start. */
+					//与前几个一致，直接把这个地址返回去。
 					pvReturn = ( void * ) ( ( ( uint8_t * ) pxPreviousBlock->pxNextFreeBlock ) + xHeapStructSize );
 
 					/* This block is being returned for use so must be taken out
 					of the list of free blocks. */
+					//然后把这个block拿出来。
 					pxPreviousBlock->pxNextFreeBlock = pxBlock->pxNextFreeBlock;
 
 					/* If the block is larger than required it can be split into
 					two. */
+					//有足够大小就把这个block拆成两块
 					if( ( pxBlock->xBlockSize - xWantedSize ) > heapMINIMUM_BLOCK_SIZE )
 					{
 						/* This block is to be split into two.  Create a new
@@ -251,6 +262,7 @@ void *pvReturn = NULL;
 						pxBlock->xBlockSize = xWantedSize;
 
 						/* Insert the new block into the list of free blocks. */
+						//把这个拆出来的block再放回空闲block里面
 						prvInsertBlockIntoFreeList( ( pxNewBlockLink ) );
 					}
 					else
@@ -310,7 +322,10 @@ void *pvReturn = NULL;
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
+/*
 
+	与heap_4基本一致，区别就在prvInsertBlockIntoFreeList这个函数内部实现；
+*/
 void vPortFree( void *pv )
 {
 uint8_t *puc = ( uint8_t * ) pv;
@@ -378,6 +393,7 @@ uint8_t *puc;
 
 	/* Iterate through the list until a block is found that has a higher address
 	than the block being inserted. */
+	//这里迭代寻找地址合适的位置。
 	for( pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock )
 	{
 		/* Nothing to do here, just iterate to the right position. */
@@ -386,6 +402,7 @@ uint8_t *puc;
 	/* Do the block being inserted, and the block it is being inserted after
 	make a contiguous block of memory? */
 	puc = ( uint8_t * ) pxIterator;
+	//这里判断是不是跟前面内存块连续，连续则并成大块。
 	if( ( puc + pxIterator->xBlockSize ) == ( uint8_t * ) pxBlockToInsert )
 	{
 		pxIterator->xBlockSize += pxBlockToInsert->xBlockSize;
@@ -399,6 +416,7 @@ uint8_t *puc;
 	/* Do the block being inserted, and the block it is being inserted before
 	make a contiguous block of memory? */
 	puc = ( uint8_t * ) pxBlockToInsert;
+	/*这里判断是不是跟后面连续。是则并成一大块*/
 	if( ( puc + pxBlockToInsert->xBlockSize ) == ( uint8_t * ) pxIterator->pxNextFreeBlock )
 	{
 		if( pxIterator->pxNextFreeBlock != pxEnd )
@@ -431,7 +449,17 @@ uint8_t *puc;
 	}
 }
 /*-----------------------------------------------------------*/
-
+/*
+	这个函数必须提前调用。
+	就是对多个不连续存储区间实现管理。
+	typedef struct HeapRegion
+	{
+		uint8_t *pucStartAddress;
+		size_t xSizeInBytes;
+	} HeapRegion_t;
+	多个不连续区间做成一个链表。
+	xStart只有一个
+*/
 void vPortDefineHeapRegions( const HeapRegion_t * const pxHeapRegions )
 {
 BlockLink_t *pxFirstFreeBlockInRegion = NULL, *pxPreviousFreeBlock;
@@ -440,10 +468,17 @@ size_t xTotalRegionSize, xTotalHeapSize = 0;
 BaseType_t xDefinedRegions = 0;
 size_t xAddress;
 const HeapRegion_t *pxHeapRegion;
-
+/*
+	数据结构如下：
+	typedef struct HeapRegion
+	{
+		uint8_t *pucStartAddress;
+		size_t xSizeInBytes;
+	} HeapRegion_t;
+*/
 	/* Can only call once! */
 	configASSERT( pxEnd == NULL );
-
+	//取出第一个
 	pxHeapRegion = &( pxHeapRegions[ xDefinedRegions ] );
 
 	while( pxHeapRegion->xSizeInBytes > 0 )
@@ -451,6 +486,7 @@ const HeapRegion_t *pxHeapRegion;
 		xTotalRegionSize = pxHeapRegion->xSizeInBytes;
 
 		/* Ensure the heap region starts on a correctly aligned boundary. */
+		//都一样，地址对齐。
 		xAddress = ( size_t ) pxHeapRegion->pucStartAddress;
 		if( ( xAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
 		{
@@ -461,7 +497,7 @@ const HeapRegion_t *pxHeapRegion;
 			xTotalRegionSize -= xAddress - ( size_t ) pxHeapRegion->pucStartAddress;
 		}
 
-		xAlignedHeap = xAddress;
+		xAlignedHeap = xAddress;		//这里是做好字节调整的地址。
 
 		/* Set xStart if it has not already been set. */
 		if( xDefinedRegions == 0 )
@@ -487,13 +523,16 @@ const HeapRegion_t *pxHeapRegion;
 
 		/* pxEnd is used to mark the end of the list of free blocks and is
 		inserted at the end of the region space. */
+		/*
+			与heap4 一致，结尾放上pxend
+		*/
 		xAddress = xAlignedHeap + xTotalRegionSize;
 		xAddress -= xHeapStructSize;
 		xAddress &= ~portBYTE_ALIGNMENT_MASK;
 		pxEnd = ( BlockLink_t * ) xAddress;
 		pxEnd->xBlockSize = 0;
 		pxEnd->pxNextFreeBlock = NULL;
-
+		
 		/* To start with there is a single free block in this region that is
 		sized to take up the entire heap region minus the space taken by the
 		free block structure. */
@@ -503,6 +542,9 @@ const HeapRegion_t *pxHeapRegion;
 
 		/* If this is not the first region that makes up the entire heap space
 		then link the previous region to this region. */
+		/*
+			这里pxPreviousFreeBlock指向上一个内存块的pxEnd,通过这种方法把内存块串联起来。
+		*/
 		if( pxPreviousFreeBlock != NULL )
 		{
 			pxPreviousFreeBlock->pxNextFreeBlock = pxFirstFreeBlockInRegion;
