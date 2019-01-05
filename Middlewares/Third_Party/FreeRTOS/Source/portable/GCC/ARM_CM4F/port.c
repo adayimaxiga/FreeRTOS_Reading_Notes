@@ -226,6 +226,11 @@ static void prvTaskExitError( void );
 /*
  * See header file for description.
  */
+/*
+	pxCode -- 创建任务时任务函数地址
+	pxTopOfStack -- TCB里面栈顶，即最高地址位置
+	将重要寄存器入栈
+*/
 StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t pxCode, void *pvParameters )
 {
 	/* Simulate the stack frame as it would be created by a context switch
@@ -234,22 +239,25 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t px
 	/* Offset added to account for the way the MCU uses the stack on entry/exit
 	of interrupts, and to ensure alignment. */
 	pxTopOfStack--;
-
-	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
+	//参看《The Definitive Guide to the ARM Cortex-M3》第24位永远是1 要不然会出错
+	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR */		//指令集？thumb
 	pxTopOfStack--;
+	//这里放PC指针。
 	*pxTopOfStack = ( ( StackType_t ) pxCode ) & portSTART_ADDRESS_MASK;	/* PC */
 	pxTopOfStack--;
+	//LR			link register  R14 store the return program counter	//存你调用一个函数飞出去以后的下一行代码
 	*pxTopOfStack = ( StackType_t ) portTASK_RETURN_ADDRESS;	/* LR */
 
 	/* Save code space by skipping register initialisation. */
 	pxTopOfStack -= 5;	/* R12, R3, R2 and R1. */
+	//存变量地址？
 	*pxTopOfStack = ( StackType_t ) pvParameters;	/* R0 */
 
 	/* A save method is being used that requires each task to maintain its
 	own exec return value. */
 	pxTopOfStack--;
 	*pxTopOfStack = portINITIAL_EXEC_RETURN;
-
+	//位置空出来了，可东西呢？没放进去呀？可能是实际任务调度的时候放进去。
 	pxTopOfStack -= 8;	/* R11, R10, R9, R8, R7, R6, R5 and R4. */
 
 	return pxTopOfStack;
@@ -309,6 +317,7 @@ static void prvPortStartFirstTask( void )
 /*
  * See header file for description.
  */
+//真,任务调度函数
 BaseType_t xPortStartScheduler( void )
 {
 	/* configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to 0.

@@ -100,7 +100,7 @@ void vListInitialise( List_t * const pxList )
 	listSET_LIST_INTEGRITY_CHECK_2_VALUE( pxList );
 }
 /*-----------------------------------------------------------*/
-
+//不要任何列表包含该列表项
 void vListInitialiseItem( ListItem_t * const pxItem )
 {
 	/* Make sure the list item is not recorded as being on a list. */
@@ -112,7 +112,7 @@ void vListInitialiseItem( ListItem_t * const pxItem )
 	listSET_SECOND_LIST_ITEM_INTEGRITY_CHECK_VALUE( pxItem );
 }
 /*-----------------------------------------------------------*/
-
+//插入最后
 void vListInsertEnd( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
 ListItem_t * const pxIndex = pxList->pxIndex;
@@ -141,7 +141,9 @@ ListItem_t * const pxIndex = pxList->pxIndex;
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
-
+/*
+通过遍历的方法寻找一个xItemValue合适的位置，放进去。
+*/
 void vListInsert( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
 ListItem_t *pxIterator;
@@ -208,7 +210,7 @@ const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
-
+//删除也没啥好说的了，就是简单的列表操作
 UBaseType_t uxListRemove( ListItem_t * const pxItemToRemove )
 {
 /* The list item knows which list it is in.  Obtain the list from the list

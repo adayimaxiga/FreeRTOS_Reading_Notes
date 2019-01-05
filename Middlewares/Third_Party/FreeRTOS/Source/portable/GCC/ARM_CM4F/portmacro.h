@@ -116,18 +116,27 @@ typedef unsigned long UBaseType_t;
 #define portTICK_PERIOD_MS			( ( TickType_t ) 1000 / configTICK_RATE_HZ )
 #define portBYTE_ALIGNMENT			8
 /*-----------------------------------------------------------*/
-
+//触发任务调度事件
 /* Scheduler utilities. */
 #define portYIELD() 															\
 {																				\
 	/* Set a PendSV to request a context switch. */								\
-	portNVIC_INT_CTRL_REG = portNVIC_PENDSVSET_BIT;								\
+	portNVIC_INT_CTRL_REG = portNVIC_PENDSVSET_BIT;								\	//给一个pendsv
 																				\
 	/* Barriers are normally not required but do ensure the code is completely	\
 	within the specified behaviour for the architecture. */						\
 	__asm volatile( "dsb" );													\
 	__asm volatile( "isb" );													\
 }
+/*
+关于汇编中两条指令如下，我理解在执行
+DSB
+数据同步隔离。比 DMB 严格： 仅当所有在它前面的存储器访问操作
+都执行完毕后，才执行在它后面的指令（亦即任何指令都要等待存储器访问操作——译者注）
+ISB
+指令同步隔离。最严格：它会清洗流水线，以保证所有它前面的指令都执
+行完毕之后，才执行它后面的指令。
+*/
 
 #define portNVIC_INT_CTRL_REG		( * ( ( volatile uint32_t * ) 0xe000ed04 ) )
 #define portNVIC_PENDSVSET_BIT		( 1UL << 28UL )
