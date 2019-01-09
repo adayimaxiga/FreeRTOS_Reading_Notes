@@ -318,12 +318,13 @@ typedef struct xLIST
  * \ingroup LinkedList
  */
 #define listGET_OWNER_OF_NEXT_ENTRY( pxTCB, pxList )										\
-{																							\
+{
+    /* 指向一个列表，即每个任务优先级下准备列表 */												   \
 List_t * const pxConstList = ( pxList );													\
 	/* Increment the index to the next item and return the item, ensuring */				\
 	/* we don't return the marker used at the end of the list.  */							\
-	( pxConstList )->pxIndex = ( pxConstList )->pxIndex->pxNext;							\
-	if( ( void * ) ( pxConstList )->pxIndex == ( void * ) &( ( pxConstList )->xListEnd ) )	\
+	( pxConstList )->pxIndex = ( pxConstList )->pxIndex->pxNext;							\   /* pxIndex原本指向列表结尾即end，这里改成了下一个列表项目  */
+	if( ( void * ) ( pxConstList )->pxIndex == ( void * ) &( ( pxConstList )->xListEnd ) )	\   /* 如果下一个是End，则再下一个，这里实现了同优先级时间片轮转法任务调度  */
 	{																						\
 		( pxConstList )->pxIndex = ( pxConstList )->pxIndex->pxNext;						\
 	}																						\

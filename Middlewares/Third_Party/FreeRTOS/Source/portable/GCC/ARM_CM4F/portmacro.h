@@ -192,6 +192,7 @@ not necessary for to use this port.  They are defined so the common demo files
 	#endif
 
 	/* Store/clear the ready priorities in a bit map. */
+	/* 这里实现了任务调度的优先级uxReadyPriorities设置硬件靠这个方法找到最高优先级 */
 	#define portRECORD_READY_PRIORITY( uxPriority, uxReadyPriorities ) ( uxReadyPriorities ) |= ( 1UL << ( uxPriority ) )
 	#define portRESET_READY_PRIORITY( uxPriority, uxReadyPriorities ) ( uxReadyPriorities ) &= ~( 1UL << ( uxPriority ) )
 
