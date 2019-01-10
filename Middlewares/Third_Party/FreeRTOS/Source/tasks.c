@@ -1174,11 +1174,13 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 		{
 			/* Minor optimisation.  The tick count cannot change in this
 			block. */
+			/* 保存系统节拍中断次数计数器 */
 			const TickType_t xConstTickCount = xTickCount;
 
 			/* Generate the tick time at which the task wants to wake. */
+			/* 计算任务下次唤醒时间(以系统节拍中断次数表示)   */
 			xTimeToWake = *pxPreviousWakeTime + xTimeIncrement;
-
+			/* *pxPreviousWakeTime中保存的是上次唤醒时间,唤醒后需要一定时间执行任务主体代码,如果上次唤醒时间大于当前时间,说明节拍计数器溢出了 */
 			if( xConstTickCount < *pxPreviousWakeTime )
 			{
 				/* The tick count has overflowed since this function was
@@ -1250,6 +1252,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB )
 	BaseType_t xAlreadyYielded = pdFALSE;
 
 		/* A delay time of zero just forces a reschedule. */
+		/* 如果延时时间为0,则不会将当前任务加入延时列表 */
 		if( xTicksToDelay > ( TickType_t ) 0U )
 		{
 			configASSERT( uxSchedulerSuspended == 0 );
@@ -2525,7 +2528,9 @@ implementations require configUSE_TICKLESS_IDLE to be set to a value other than
 
 #endif /* INCLUDE_xTaskAbortDelay */
 /*----------------------------------------------------------*/
-
+/*
+	时钟节拍器
+*/
 BaseType_t xTaskIncrementTick( void )
 {
 TCB_t * pxTCB;
@@ -2536,10 +2541,12 @@ BaseType_t xSwitchRequired = pdFALSE;
 	Increments the tick then checks to see if the new tick value will cause any
 	tasks to be unblocked. */
 	traceTASK_INCREMENT_TICK( xTickCount );
+	//任务调度器没挂起
 	if( uxSchedulerSuspended == ( UBaseType_t ) pdFALSE )
 	{
 		/* Minor optimisation.  The tick count cannot change in this
 		block. */
+		//时间加
 		const TickType_t xConstTickCount = xTickCount + 1;
 
 		/* Increment the RTOS tick, switching the delayed and overflowed
@@ -2548,6 +2555,7 @@ BaseType_t xSwitchRequired = pdFALSE;
 
 		if( xConstTickCount == ( TickType_t ) 0U )
 		{
+			//交换时间溢出的list与普通list的指针
 			taskSWITCH_DELAYED_LISTS();
 		}
 		else
@@ -2563,6 +2571,7 @@ BaseType_t xSwitchRequired = pdFALSE;
 		{
 			for( ;; )
 			{
+				//如果没有即将要唤醒的任务
 				if( listLIST_IS_EMPTY( pxDelayedTaskList ) != pdFALSE )
 				{
 					/* The delayed list is empty.  Set xNextTaskUnblockTime
@@ -2640,6 +2649,7 @@ BaseType_t xSwitchRequired = pdFALSE;
 		/* Tasks of equal priority to the currently running task will share
 		processing time (time slice) if preemption is on, and the application
 		writer has not explicitly turned time slicing off. */
+		//时间片轮转核心代码
 		#if ( ( configUSE_PREEMPTION == 1 ) && ( configUSE_TIME_SLICING == 1 ) )
 		{
 			if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ pxCurrentTCB->uxPriority ] ) ) > ( UBaseType_t ) 1 )
@@ -4233,7 +4243,8 @@ TickType_t uxReturn;
 	uint32_t ulReturn;
 
 		taskENTER_CRITICAL();
-		{
+		{	
+			 /* 仅当通知值为0，才进行阻塞操作*/
 			/* Only block if the notification count is not already non-zero. */
 			if( pxCurrentTCB->ulNotifiedValue == 0UL )
 			{
@@ -4262,7 +4273,7 @@ TickType_t uxReturn;
 			}
 		}
 		taskEXIT_CRITICAL();
-
+		/* 到这里说明其它任务或中断向这个任务发送了通知,或者任务阻塞超时,现在继续处理*/
 		taskENTER_CRITICAL();
 		{
 			traceTASK_NOTIFY_TAKE();
@@ -4373,7 +4384,9 @@ TickType_t uxReturn;
 
 #endif /* configUSE_TASK_NOTIFICATIONS */
 /*-----------------------------------------------------------*/
-
+/*
+		任务通知模型
+*/
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
 
 	BaseType_t xTaskGenericNotify( TaskHandle_t xTaskToNotify, uint32_t ulValue, eNotifyAction eAction, uint32_t *pulPreviousNotificationValue )
@@ -4383,10 +4396,12 @@ TickType_t uxReturn;
 	uint8_t ucOriginalNotifyState;
 
 		configASSERT( xTaskToNotify );
+		//转换成TCB
 		pxTCB = ( TCB_t * ) xTaskToNotify;
 
 		taskENTER_CRITICAL();
-		{
+		{	
+			//更新回传值
 			if( pulPreviousNotificationValue != NULL )
 			{
 				*pulPreviousNotificationValue = pxTCB->ulNotifiedValue;
@@ -4417,6 +4432,7 @@ TickType_t uxReturn;
 					}
 					else
 					{
+						 /* 上次的通知值还未取走,本次通知值丢弃 */
 						/* The value could not be written to the task. */
 						xReturn = pdFAIL;
 					}
@@ -4432,6 +4448,7 @@ TickType_t uxReturn;
 
 			/* If the task is in the blocked state specifically to wait for a
 			notification then unblock it now. */
+			 /* 如果被通知的任务因为等待通知而阻塞,现在将它解除阻塞 */
 			if( ucOriginalNotifyState == taskWAITING_NOTIFICATION )
 			{
 				( void ) uxListRemove( &( pxTCB->xStateListItem ) );
@@ -4455,7 +4472,7 @@ TickType_t uxReturn;
 					prvResetNextTaskUnblockTime();
 				}
 				#endif
-
+				/* 如果被通知的任务优先级高于当前任务,则触发PendSV中断,退出临界区后进行上下文切换T*/
 				if( pxTCB->uxPriority > pxCurrentTCB->uxPriority )
 				{
 					/* The notified task has a priority above the currently
