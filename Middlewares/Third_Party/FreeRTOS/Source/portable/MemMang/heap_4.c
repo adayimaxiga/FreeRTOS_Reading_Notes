@@ -1,71 +1,29 @@
 /*
-    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
-    All rights reserved
-
-    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    This file is part of the FreeRTOS distribution.
-
-    FreeRTOS is free software; you can redistribute it and/or modify it under
-    the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
-
-    ***************************************************************************
-    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
-    >>!   distribute a combined work that includes FreeRTOS without being   !<<
-    >>!   obliged to provide the source code for proprietary components     !<<
-    >>!   outside of the FreeRTOS kernel.                                   !<<
-    ***************************************************************************
-
-    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
-    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available on the following
-    link: http://www.freertos.org/a00114.html
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that is more than just the market leader, it     *
-     *    is the industry's de facto standard.                               *
-     *                                                                       *
-     *    Help yourself get started quickly while simultaneously helping     *
-     *    to support the FreeRTOS project by purchasing a FreeRTOS           *
-     *    tutorial book, reference manual, or both:                          *
-     *    http://www.FreeRTOS.org/Documentation                              *
-     *                                                                       *
-    ***************************************************************************
-
-    http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-    the FAQ page "My application does not run, what could be wrong?".  Have you
-    defined configASSERT()?
-
-    http://www.FreeRTOS.org/support - In return for receiving this top quality
-    embedded software for free we request you assist our global community by
-    participating in the support forum.
-
-    http://www.FreeRTOS.org/training - Investing in training allows your team to
-    be as productive as possible as early as possible.  Now you can receive
-    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-    Ltd, and the world's leading authority on the world's leading RTOS.
-
-    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
-    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
-    compatible FAT file system, and our tiny thread aware UDP/IP stack.
-
-    http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
-    Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
-
-    http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
-    Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and commercial middleware.
-
-    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
-    engineered and independently SIL3 certified version for use in safety and
-    mission critical applications that require provable dependability.
-
-    1 tab == 4 spaces!
-*/
+ * FreeRTOS Kernel V10.0.1
+ * Copyright (C) 2017 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ * the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * http://www.FreeRTOS.org
+ * http://aws.amazon.com/freertos
+ *
+ * 1 tab == 4 spaces!
+ */
 
 /*
  * A sample implementation of pvPortMalloc() and vPortFree() that combines
@@ -108,7 +66,7 @@ task.h is included from an application file. */
 
 /* Define the linked list structure.  This is used to link free blocks in order
 of their memory address. */
-typedef struct A_BLOCK_LINK						//内存链表
+typedef struct A_BLOCK_LINK
 {
 	struct A_BLOCK_LINK *pxNextFreeBlock;	/*<< The next free block in the list. */
 	size_t xBlockSize;						/*<< The size of the free block. */
@@ -137,7 +95,7 @@ block must by correctly byte aligned. */
 static const size_t xHeapStructSize	= ( sizeof( BlockLink_t ) + ( ( size_t ) ( portBYTE_ALIGNMENT - 1 ) ) ) & ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
 
 /* Create a couple of list links to mark the start and end of the list. */
-static BlockLink_t xStart, *pxEnd = NULL;			//这里的pxEnd是个指针，而heap_2模型中它不是指针。
+static BlockLink_t xStart, *pxEnd = NULL;
 
 /* Keeps track of the number of free bytes remaining, but says nothing about
 fragmentation. */
@@ -152,16 +110,16 @@ static size_t xBlockAllocatedBit = 0;
 
 /*-----------------------------------------------------------*/
 
-void *pvPortMalloc( size_t xWantedSize )			//申请内存
+void *pvPortMalloc( size_t xWantedSize )
 {
 BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
 void *pvReturn = NULL;
 
-	vTaskSuspendAll();								//挂起全部任务
+	vTaskSuspendAll();
 	{
 		/* If this is the first call to malloc then the heap will require
 		initialisation to setup the list of free blocks. */
-		if( pxEnd == NULL )							//第一次需要初始化
+		if( pxEnd == NULL )
 		{
 			prvHeapInit();
 		}
@@ -174,23 +132,16 @@ void *pvReturn = NULL;
 		set.  The top bit of the block size member of the BlockLink_t structure
 		is used to determine who owns the block - the application or the
 		kernel, so it must be free. */
-		/*	
-			最高位是有其他用处？
-			最高位是用来确定这一块内存是kernel拥有还是application拥有
-		
-		*/
 		if( ( xWantedSize & xBlockAllocatedBit ) == 0 )
 		{
 			/* The wanted size is increased so it can contain a BlockLink_t
 			structure in addition to the requested amount of bytes. */
 			if( xWantedSize > 0 )
 			{
-				//与heap2一样的操作。
 				xWantedSize += xHeapStructSize;
 
 				/* Ensure that blocks are always aligned to the required number
 				of bytes. */
-				//这里在做地址对齐的操作。
 				if( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) != 0x00 )
 				{
 					/* Byte alignment required. */
@@ -206,43 +157,33 @@ void *pvReturn = NULL;
 			{
 				mtCOVERAGE_TEST_MARKER();
 			}
-			//判断需求的空间大小是否满足要求
+
 			if( ( xWantedSize > 0 ) && ( xWantedSize <= xFreeBytesRemaining ) )
 			{
 				/* Traverse the list from the start	(lowest address) block until
 				one	of adequate size is found. */
-				/*
-					这里开始按地址顺序遍历block，直到找到一个满足条件的block
-				*/
 				pxPreviousBlock = &xStart;
 				pxBlock = xStart.pxNextFreeBlock;
 				while( ( pxBlock->xBlockSize < xWantedSize ) && ( pxBlock->pxNextFreeBlock != NULL ) )
 				{
 					pxPreviousBlock = pxBlock;
 					pxBlock = pxBlock->pxNextFreeBlock;
-				}	
-				/*
-					到这里时，pxBlock是找到了一个满足条件的空间，要不然就是没找到，pxBlock == pxEnd
-				*/
+				}
+
 				/* If the end marker was reached then a block of adequate size
 				was	not found. */
 				if( pxBlock != pxEnd )
 				{
 					/* Return the memory space pointed to - jumping over the
 					BlockLink_t structure at its start. */
-					//这里留出了bloct struct空间后返回后面一个地址。
 					pvReturn = ( void * ) ( ( ( uint8_t * ) pxPreviousBlock->pxNextFreeBlock ) + xHeapStructSize );
 
 					/* This block is being returned for use so must be taken out
 					of the list of free blocks. */
-					//把这一块空间拿出heap
 					pxPreviousBlock->pxNextFreeBlock = pxBlock->pxNextFreeBlock;
 
 					/* If the block is larger than required it can be split into
 					two. */
-					/*
-						与heap2操作一致，这时候如果这个block大一些，就会被分成两个Block，一个是malloc需要的block，一个是空闲block。
-					*/
 					if( ( pxBlock->xBlockSize - xWantedSize ) > heapMINIMUM_BLOCK_SIZE )
 					{
 						/* This block is to be split into two.  Create a new
@@ -258,9 +199,6 @@ void *pvReturn = NULL;
 						pxBlock->xBlockSize = xWantedSize;
 
 						/* Insert the new block into the list of free blocks. */
-						/* 
-							把新block放进空闲block链表里面
-						*/
 						prvInsertBlockIntoFreeList( pxNewBlockLink );
 					}
 					else
@@ -272,7 +210,7 @@ void *pvReturn = NULL;
 
 					if( xFreeBytesRemaining < xMinimumEverFreeBytesRemaining )
 					{
-						xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;	//这个变量代表啥？
+						xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
 					}
 					else
 					{
@@ -281,7 +219,7 @@ void *pvReturn = NULL;
 
 					/* The block is being returned - it is allocated and owned
 					by the application and has no "next" block. */
-					pxBlock->xBlockSize |= xBlockAllocatedBit;	
+					pxBlock->xBlockSize |= xBlockAllocatedBit;
 					pxBlock->pxNextFreeBlock = NULL;
 				}
 				else
@@ -321,10 +259,7 @@ void *pvReturn = NULL;
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
-/*
-	释放空间
-	先判断
-*/
+
 void vPortFree( void *pv )
 {
 uint8_t *puc = ( uint8_t * ) pv;
@@ -334,7 +269,7 @@ BlockLink_t *pxLink;
 	{
 		/* The memory being freed will have an BlockLink_t structure immediately
 		before it. */
-		puc -= xHeapStructSize;		//减去一个xHeapStructSize
+		puc -= xHeapStructSize;
 
 		/* This casting is to keep the compiler from issuing warnings. */
 		pxLink = ( void * ) puc;
@@ -342,14 +277,14 @@ BlockLink_t *pxLink;
 		/* Check the block is actually allocated. */
 		configASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 );
 		configASSERT( pxLink->pxNextFreeBlock == NULL );
-		//这里分配的每个Block最高位都是1
+
 		if( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 )
 		{
-			if( pxLink->pxNextFreeBlock == NULL )		//这里分配出来必须是个空的。
+			if( pxLink->pxNextFreeBlock == NULL )
 			{
 				/* The block is being returned to the heap - it is no longer
 				allocated. */
-				pxLink->xBlockSize &= ~xBlockAllocatedBit;	//获得真实的block大小
+				pxLink->xBlockSize &= ~xBlockAllocatedBit;
 
 				vTaskSuspendAll();
 				{
@@ -399,10 +334,8 @@ size_t uxAddress;
 size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
-	uxAddress = ( size_t ) ucHeap;			//内存堆初始地址
-	/*
-		这里同样是做了一个内存地址对齐。这样uxAddress 的地址一定是后几位都是0
-	*/
+	uxAddress = ( size_t ) ucHeap;
+
 	if( ( uxAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
 	{
 		uxAddress += ( portBYTE_ALIGNMENT - 1 );
@@ -414,13 +347,11 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* xStart is used to hold a pointer to the first item in the list of free
 	blocks.  The void cast is used to prevent compiler warnings. */
-	/*Start指向初始地址*/
 	xStart.pxNextFreeBlock = ( void * ) pucAlignedHeap;
 	xStart.xBlockSize = ( size_t ) 0;
 
 	/* pxEnd is used to mark the end of the list of free blocks and is inserted
 	at the end of the heap space. */
-	//这里把pxEnd放在了heap尾部，注意在heap_2中pxEnd是放在全局区的。
 	uxAddress = ( ( size_t ) pucAlignedHeap ) + xTotalHeapSize;
 	uxAddress -= xHeapStructSize;
 	uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
@@ -430,7 +361,6 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* To start with there is a single free block that is sized to take up the
 	entire heap space, minus the space taken by pxEnd. */
-	//这里又在heap开始位置放下第一个Block，这个跟heap2相同。
 	pxFirstFreeBlock = ( void * ) pucAlignedHeap;
 	pxFirstFreeBlock->xBlockSize = uxAddress - ( size_t ) pxFirstFreeBlock;
 	pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
@@ -440,15 +370,10 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 	xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
 
 	/* Work out the position of the top bit in a size_t variable. */
-	/*取最高地址位*/
 	xBlockAllocatedBit = ( ( size_t ) 1 ) << ( ( sizeof( size_t ) * heapBITS_PER_BYTE ) - 1 );
 }
 /*-----------------------------------------------------------*/
-/*
-	功能类似heap2，回收空闲内存块
-	这里不是按照块大小排序的，是按照地址顺序。
-	然后如果插入的内存块首地址与上一个内存块相连，则合并俩内存块成一个连续内存块。
-*/
+
 static void prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert )
 {
 BlockLink_t *pxIterator;
@@ -463,9 +388,6 @@ uint8_t *puc;
 
 	/* Do the block being inserted, and the block it is being inserted after
 	make a contiguous block of memory? */
-	/*
-		这里计算是否与前一块连续并与前一个块合成内存块	
-	*/
 	puc = ( uint8_t * ) pxIterator;
 	if( ( puc + pxIterator->xBlockSize ) == ( uint8_t * ) pxBlockToInsert )
 	{
@@ -479,9 +401,6 @@ uint8_t *puc;
 
 	/* Do the block being inserted, and the block it is being inserted before
 	make a contiguous block of memory? */
-	/*
-		这里计算是否与后一块连续成一个内存块，并进行合成操作。
-	*/
 	puc = ( uint8_t * ) pxBlockToInsert;
 	if( ( puc + pxBlockToInsert->xBlockSize ) == ( uint8_t * ) pxIterator->pxNextFreeBlock )
 	{
@@ -505,9 +424,6 @@ uint8_t *puc;
 	before and the block after, then it's pxNextFreeBlock pointer will have
 	already been set, and should not be set here as that would make it point
 	to itself. */
-	/*
-		到这里说明pxBlockToInsert是中间一个两侧都不相邻的内存块。那就把它加进空闲堆链表中间。
-	*/
 	if( pxIterator != pxBlockToInsert )
 	{
 		pxIterator->pxNextFreeBlock = pxBlockToInsert;

@@ -26,7 +26,7 @@
  *  
  *----------------------------------------------------------------------------
  *
- * Portions Copyright � 2016 STMicroelectronics International N.V. All rights reserved.
+ * Portions Copyright � 2016 STMicroelectronics International N.V. All rights reserved.
  * Portions Copyright (c) 2013 ARM LIMITED
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@
   * @file    cmsis_os.c
   * @author  MCD Application Team
   * @date    13-July-2017
-  * @brief   CMSIS-RTOS API implementation for FreeRTOS V9.0.0
+  * @brief   CMSIS-RTOS API implementation for FreeRTOS V10.0.1
   ******************************************************************************
   * @attention
   *
@@ -97,7 +97,7 @@
   */ 
 
 #include <string.h>
-#include "cmsis_os.h"       //Cube封装操作系统接口
+#include "cmsis_os.h"
 
 /*
  * ARM Compiler 4/5
@@ -140,7 +140,7 @@
   #include <cmsis_iar.h>
 #endif
 
-extern void xPortSysTickHandler(void);      
+extern void xPortSysTickHandler(void);
 
 /* Convert from CMSIS type osPriority to FreeRTOS priority number */
 static unsigned portBASE_TYPE makeFreeRtosPriority (osPriority priority)

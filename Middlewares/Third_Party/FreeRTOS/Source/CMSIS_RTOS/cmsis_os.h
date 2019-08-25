@@ -26,7 +26,7 @@
  *  
  *----------------------------------------------------------------------------
  *
- * Portions Copyright � 2016 STMicroelectronics International N.V. All rights reserved.
+ * Portions Copyright � 2016 STMicroelectronics International N.V. All rights reserved.
  * Portions Copyright (c) 2013 ARM LIMITED
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
@@ -224,7 +224,6 @@ typedef enum  {
   osPriorityRealtime      = +3,          ///< priority: realtime (highest)
   osPriorityError         =  0x84        ///< system cannot determine priority or thread has illegal priority
 } osPriority;
-//基于某个基准设置优先级
 
 /// Timeout value.
 /// \note MUST REMAIN UNCHANGED: \b osWaitForever shall be consistent in every CMSIS-RTOS.
@@ -233,9 +232,9 @@ typedef enum  {
 /// Status code values returned by CMSIS-RTOS functions.
 /// \note MUST REMAIN UNCHANGED: \b osStatus shall be consistent in every CMSIS-RTOS.
 typedef enum  {
-  osOK                    =     0,       ///< function completed; no error or event occurred.   正常
-  osEventSignal           =  0x08,       ///< function completed; signal event occurred.        信号
-  osEventMessage          =  0x10,       ///< function completed; message event occurred.       
+  osOK                    =     0,       ///< function completed; no error or event occurred.
+  osEventSignal           =  0x08,       ///< function completed; signal event occurred.
+  osEventMessage          =  0x10,       ///< function completed; message event occurred.
   osEventMail             =  0x20,       ///< function completed; mail event occurred.
   osEventTimeout          =  0x40,       ///< function completed; timeout occurred.
   osErrorParameter        =  0x80,       ///< parameter error: a mandatory parameter was missing or specified an incorrect object.
